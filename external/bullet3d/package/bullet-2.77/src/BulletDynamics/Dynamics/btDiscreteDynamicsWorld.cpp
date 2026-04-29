@@ -190,10 +190,21 @@ void	btDiscreteDynamicsWorld::synchronizeSingleMotionState(btRigidBody* body)
 		///@todo: add 'dirty' flag
 		//if (body->getActivationState() != ISLAND_SLEEPING)
 		{
-			btTransform interpolatedTransform;
-			btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(),
-				body->getInterpolationLinearVelocity(),body->getInterpolationAngularVelocity(),m_localTime*body->getHitFraction(),interpolatedTransform);
-			body->getMotionState()->setWorldTransform(interpolatedTransform);
+			btTransform interpolatedWorldTransform;
+			btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(), body->getInterpolationLinearVelocity(),
+												body->getInterpolationAngularVelocity(),m_localTime*body->getHitFraction(),
+												interpolatedWorldTransform);
+
+			btTransform wt;
+			btTransform rt;
+			body->getMotionState()->getWorldTransform(wt);
+			body->getMotionState()->getRelativeTransform(rt);
+			
+			// changes done on the world transform (by the physics sim) are applied to the relative transform
+			rt.setOrigin(rt.getOrigin()+ (interpolatedWorldTransform.getOrigin()-wt.getOrigin())/body->getMotionState()->getParentScale()); // divide translation change by parent scale to compensate for it(so game world translation == physics translation)
+			rt.setRotation(rt.getRotation()+ interpolatedWorldTransform.getRotation()-wt.getRotation());
+			
+			body->getMotionState()->setRelativeTransform(rt);
 		}
 	}
 }

@@ -133,6 +133,29 @@ namespace dmPhysics
     typedef void (*SetWorldTransformCallback)(void* user_data, const dmVMath::Point3& position, const dmVMath::Quat& rotation);
 
     /**
+     * Callback used to propagate the relative(to parent) transform of an external object into the physics simulation.
+     *
+     * @param user_data User data pointing to the external object
+     * @param relative_transform relative transform output parameter
+     */
+    typedef void (*GetRelativeTransformCallback)(void* user_data, dmTransform::Transform& relative_transform);
+    /**
+     * Callback used to propagate a transform from the physics simulation to an external object's relative(to parent) tranform.
+     *
+     * @param user_data User data pointing to the external object
+     * @param position Position that the external object will obtain
+     * @param rotation Rotation that the external object will obtain
+     */
+    typedef void (*SetRelativeTransformCallback)(void* user_data, const dmVMath::Point3& position, const dmVMath::Quat& rotation);
+
+    /**
+     * Callback used to get the scale of the parent object
+     *
+     * @return uniform scale of the parent game object or 1 if there is no parent
+     */
+    typedef float (*GetParentScaleCallback)(void* user_data);
+    
+    /**
      * Callback used to signal collisions.
      *
      * @param user_data_a User data pointing to the external object of the first colliding object
@@ -309,6 +332,13 @@ namespace dmPhysics
         GetWorldTransformCallback m_GetWorldTransformCallback;
         /// param set_world_transform Callback for copying the transform from the collision object to the corresponding user data
         SetWorldTransformCallback m_SetWorldTransformCallback;
+
+        /// param get_relative_transform Callback for copying the transform from the corresponding user data to the collision object
+        GetWorldTransformCallback m_GetRelativeTransformCallback; 
+        /// param set_relative_transform Callback for copying the transform from the collision object to the corresponding user data
+        SetWorldTransformCallback m_SetRelativeTransformCallback;
+        /// parem get_parent_scale Callback for copying the scale of the parent game object from the corresponding user data
+        GetParentScaleCallback m_GetParentScaleCallback;
         /// max number of collision objects
         uint32_t m_MaxCollisionObjectsCount;
     };

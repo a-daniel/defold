@@ -3195,6 +3195,12 @@ namespace dmGameObject
         return dmTransform::ToTransform(mtx);
     }
 
+
+    dmTransform::Transform GetRelativeTransform(HInstance instance)
+    {
+        return instance->m_Transform;
+    }
+
     const Matrix4 & GetWorldMatrix(HInstance instance)
     {
         return instance->m_Collection->m_WorldTransforms[instance->m_Index];

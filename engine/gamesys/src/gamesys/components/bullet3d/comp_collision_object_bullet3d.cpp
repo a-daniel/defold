@@ -33,6 +33,7 @@
 
 #include "gamesys.h"
 #include "gamesys_private.h" // ShowFullBufferError
+#include "../../../../../gameobject/src/gameobject/gameobject_private.h" // UpdateTransformsForInstance
 
 DM_PROPERTY_EXTERN(rmtp_Components);
 DM_PROPERTY_U32(rmtp_CollisionObjectBullet3D, 0, PROFILE_PROPERTY_FRAME_RESET, "# components", &rmtp_Components);
@@ -47,6 +48,9 @@ namespace dmGameSystem
     static void InstallBullet3DPhysicsAdapter();
     static void GetWorldTransform(void* user_data, dmTransform::Transform& world_transform);
     static void SetWorldTransform(void* user_data, const dmVMath::Point3& position, const dmVMath::Quat& rotation);
+    static void GetRelativeTransform(void* user_data, dmTransform::Transform& relative_transform);
+    static void SetRelativeTransform(void* user_data, const dmVMath::Point3& position, const dmVMath::Quat& rotation);
+    static float GetParentScale(void* user_data);
 
     struct CollisionComponentBullet3D;
     struct CollisionWorldBullet3D
@@ -88,6 +92,10 @@ namespace dmGameSystem
         dmPhysics::NewWorldParams world_params;
         world_params.m_GetWorldTransformCallback = GetWorldTransform;
         world_params.m_SetWorldTransformCallback = SetWorldTransform;
+        world_params.m_GetRelativeTransformCallback = GetRelativeTransform;
+        world_params.m_SetRelativeTransformCallback = SetRelativeTransform;
+        world_params.m_GetParentScaleCallback = GetParentScale;
+
         world_params.m_MaxCollisionObjectsCount  = comp_count;
 
         dmPhysics::HWorld3D physics_world = dmPhysics::NewWorld3D(physics_context->m_Context, world_params);
@@ -460,6 +468,31 @@ namespace dmGameSystem
         world_transform = dmGameObject::GetWorldTransform(instance);
     }
 
+    static void GetRelativeTransform(void* user_data, dmTransform::Transform& relative_transform)
+    {
+        if (!user_data)
+            return;
+        CollisionComponent* component = (CollisionComponent*)user_data;
+        dmGameObject::HInstance instance = component->m_Instance;
+        relative_transform = dmGameObject::GetRelativeTransform(instance);
+    }
+
+    static float GetParentScale(void* user_data)
+    {
+        if (!user_data)
+            return 1;
+        dmTransform::Transform relative_transform;
+        dmTransform::Transform world_transform;
+
+        CollisionComponent* component = (CollisionComponent*)user_data;
+        dmGameObject::HInstance instance = component->m_Instance;
+
+        relative_transform = dmGameObject::GetRelativeTransform(instance);
+        world_transform = dmGameObject::GetWorldTransform(instance);
+
+        return (world_transform.GetUniformScale()/relative_transform.GetUniformScale());
+    }
+
     static void SetWorldTransform(void* user_data, const dmVMath::Point3& position, const dmVMath::Quat& rotation)
     {
         if (!user_data)
@@ -469,6 +502,18 @@ namespace dmGameSystem
         dmGameObject::SetPosition(instance, position);
         dmGameObject::SetRotation(instance, rotation);
         ++g_NumPhysicsTransformsUpdated;
+    }
+
+    static void SetRelativeTransform(void* user_data, const dmVMath::Point3& position, const dmVMath::Quat& rotation)
+    {
+        if (!user_data)
+            return;
+
+        SetWorldTransform(user_data,position,rotation);
+
+        CollisionComponent* component = (CollisionComponent*)user_data;
+        dmGameObject::HInstance instance = component->m_Instance;
+        dmGameObject::UpdateTransformsForInstance(instance->m_Collection, instance);
     }
 
     dmGameObject::CreateResult CompCollisionObjectBullet3DAddToUpdate(const dmGameObject::ComponentAddToUpdateParams& params) {

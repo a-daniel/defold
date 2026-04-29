@@ -773,6 +773,13 @@ namespace dmGameObject
      */
     dmTransform::Transform GetWorldTransform(HInstance instance);
 
+    /*# get relative transform
+     * Get game object's transform relative to parent
+     * @name GetRelativeTransform
+     * @param instance [type:dmGameObject::HInstance] Gameobject instance
+     * @return [type:dmTransform::Transform] relative transform
+     */
+    dmTransform::Transform GetRelativeTransform(HInstance instance);
     /*#
      * Set whether the instance should be flagged as a bone.
      * Instances flagged as bones can have their transforms updated in a batch through SetBoneTransforms.
