@@ -402,7 +402,7 @@ diff -u -r --strip-trailing-cr a/bullet-2.77/src/BulletCollision/CollisionDispat
  
 diff -u -r --strip-trailing-cr a/bullet-2.77/src/BulletCollision/CollisionShapes/btCapsuleShape.cpp c/bullet-2.77/src/BulletCollision/CollisionShapes/btCapsuleShape.cpp
 --- a/bullet-2.77/src/BulletCollision/CollisionShapes/btCapsuleShape.cpp	2009-05-22 19:15:56.000000000 +0300
-+++ c/bullet-2.77/src/BulletCollision/CollisionShapes/btCapsuleShape.cpp	2026-04-30 23:18:32.365467000 +0300
++++ c/bullet-2.77/src/BulletCollision/CollisionShapes/btCapsuleShape.cpp	2026-05-01 11:01:54.554837000 +0300
 @@ -24,6 +24,7 @@
  	m_shapeType = CAPSULE_SHAPE_PROXYTYPE;
  	m_upAxis = 1;
@@ -413,7 +413,7 @@ diff -u -r --strip-trailing-cr a/bullet-2.77/src/BulletCollision/CollisionShapes
   
 diff -u -r --strip-trailing-cr a/bullet-2.77/src/BulletCollision/CollisionShapes/btCapsuleShape.h c/bullet-2.77/src/BulletCollision/CollisionShapes/btCapsuleShape.h
 --- a/bullet-2.77/src/BulletCollision/CollisionShapes/btCapsuleShape.h	2010-02-17 23:16:36.000000000 +0200
-+++ c/bullet-2.77/src/BulletCollision/CollisionShapes/btCapsuleShape.h	2026-04-30 23:20:57.019787000 +0300
++++ c/bullet-2.77/src/BulletCollision/CollisionShapes/btCapsuleShape.h	2026-05-01 11:13:44.405599000 +0300
 @@ -45,21 +45,14 @@
  	
  	virtual void setMargin(btScalar collisionMargin)
@@ -459,7 +459,7 @@ diff -u -r --strip-trailing-cr a/bullet-2.77/src/BulletCollision/CollisionShapes
  	virtual	int	calculateSerializeBufferSize() const;
 diff -u -r --strip-trailing-cr a/bullet-2.77/src/BulletCollision/CollisionShapes/btCompoundShape.cpp c/bullet-2.77/src/BulletCollision/CollisionShapes/btCompoundShape.cpp
 --- a/bullet-2.77/src/BulletCollision/CollisionShapes/btCompoundShape.cpp	2010-07-20 16:37:12.000000000 +0300
-+++ c/bullet-2.77/src/BulletCollision/CollisionShapes/btCompoundShape.cpp	2026-04-22 02:29:30.000000000 +0300
++++ c/bullet-2.77/src/BulletCollision/CollisionShapes/btCompoundShape.cpp	2026-05-01 11:01:54.554837000 +0300
 @@ -282,7 +282,7 @@
  //		childScale = childScale * (childTrans.getBasis() * scaling);
  		childScale = childScale * scaling / m_localScaling;
@@ -1069,7 +1069,7 @@ diff -u -r --strip-trailing-cr a/bullet-2.77/src/BulletDynamics/Dynamics/btActio
  
 diff -u -r --strip-trailing-cr a/bullet-2.77/src/BulletDynamics/Dynamics/btDiscreteDynamicsWorld.cpp c/bullet-2.77/src/BulletDynamics/Dynamics/btDiscreteDynamicsWorld.cpp
 --- a/bullet-2.77/src/BulletDynamics/Dynamics/btDiscreteDynamicsWorld.cpp	2010-08-15 13:45:56.000000000 +0300
-+++ c/bullet-2.77/src/BulletDynamics/Dynamics/btDiscreteDynamicsWorld.cpp	2026-04-30 23:16:46.076032000 +0300
++++ c/bullet-2.77/src/BulletDynamics/Dynamics/btDiscreteDynamicsWorld.cpp	2026-05-01 11:03:30.057010000 +0300
 @@ -52,7 +52,7 @@
  :btDynamicsWorld(dispatcher,pairCache,collisionConfiguration),
  m_constraintSolver(constraintSolver),
@@ -1079,7 +1079,33 @@ diff -u -r --strip-trailing-cr a/bullet-2.77/src/BulletDynamics/Dynamics/btDiscr
  m_synchronizeAllMotionStates(false),
  m_profileTimings(0)
  {
-@@ -1127,7 +1127,7 @@
+@@ -190,10 +190,21 @@
+ 		///@todo: add 'dirty' flag
+ 		//if (body->getActivationState() != ISLAND_SLEEPING)
+ 		{
+-			btTransform interpolatedTransform;
+-			btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(),
+-				body->getInterpolationLinearVelocity(),body->getInterpolationAngularVelocity(),m_localTime*body->getHitFraction(),interpolatedTransform);
+-			body->getMotionState()->setWorldTransform(interpolatedTransform);
++			btTransform interpolatedWorldTransform;
++			btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(), body->getInterpolationLinearVelocity(),
++												body->getInterpolationAngularVelocity(),m_localTime*body->getHitFraction(),
++												interpolatedWorldTransform);
++
++			btTransform wt;
++			btTransform rt;
++			body->getMotionState()->getWorldTransform(wt);
++			body->getMotionState()->getRelativeTransform(rt);
++			
++			// changes done on the world transform (by the physics sim) are applied to the relative transform
++			rt.setOrigin(rt.getOrigin()+ (interpolatedWorldTransform.getOrigin()-wt.getOrigin())/body->getMotionState()->getParentScale()); // divide translation change by parent scale to compensate for it(so game world translation == physics translation)
++			rt.setRotation(rt.getRotation()+ interpolatedWorldTransform.getRotation()-wt.getRotation());
++			
++			body->getMotionState()->setRelativeTransform(rt);
+ 		}
+ 	}
+ }
+@@ -1127,7 +1138,7 @@
  	for (i=0;i<m_collisionObjects.size();i++)
  	{
  		btCollisionObject* colObj = m_collisionObjects[i];
@@ -1440,6 +1466,21 @@ diff -u -r --strip-trailing-cr a/bullet-2.77/src/LinearMath/btIDebugDraw.h c/bul
  	}
  	
  	virtual void	drawSphere (const btVector3& p, btScalar radius, const btVector3& color)
+diff -u -r --strip-trailing-cr a/bullet-2.77/src/LinearMath/btMotionState.h c/bullet-2.77/src/LinearMath/btMotionState.h
+--- a/bullet-2.77/src/LinearMath/btMotionState.h	2009-02-18 15:52:04.000000000 +0200
++++ c/bullet-2.77/src/LinearMath/btMotionState.h	2026-05-01 11:03:30.057010000 +0300
+@@ -34,7 +34,10 @@
+ 		//Bullet only calls the update of worldtransform for active objects
+ 		virtual void	setWorldTransform(const btTransform& worldTrans)=0;
+ 		
+-	
++		virtual void	getRelativeTransform(btTransform& relativeTrans )=0;
++		virtual void	setRelativeTransform(const btTransform& relativeTrans)=0;
++
++		virtual float	getParentScale(void) = 0;
+ };
+ 
+ #endif //BT_MOTIONSTATE_H
 diff -u -r --strip-trailing-cr a/bullet-2.77/src/LinearMath/btQuickprof.cpp c/bullet-2.77/src/LinearMath/btQuickprof.cpp
 --- a/bullet-2.77/src/LinearMath/btQuickprof.cpp	2010-09-17 17:24:52.000000000 +0300
 +++ c/bullet-2.77/src/LinearMath/btQuickprof.cpp	2026-04-22 13:34:34.699971000 +0300

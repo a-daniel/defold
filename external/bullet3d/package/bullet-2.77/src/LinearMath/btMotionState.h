@@ -34,7 +34,10 @@ class	btMotionState
 		//Bullet only calls the update of worldtransform for active objects
 		virtual void	setWorldTransform(const btTransform& worldTrans)=0;
 		
-	
+		virtual void	getRelativeTransform(btTransform& relativeTrans )=0;
+		virtual void	setRelativeTransform(const btTransform& relativeTrans)=0;
+
+		virtual float	getParentScale(void) = 0;
 };
 
 #endif //BT_MOTIONSTATE_H

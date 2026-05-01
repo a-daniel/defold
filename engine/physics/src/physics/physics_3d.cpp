@@ -59,11 +59,16 @@ namespace dmPhysics
     class MotionState : public btMotionState
     {
     public:
-        MotionState(HContext3D context, void* user_data, GetWorldTransformCallback get_world_transform, SetWorldTransformCallback set_world_transform)
+        MotionState(HContext3D context, void* user_data, GetWorldTransformCallback get_world_transform, SetWorldTransformCallback set_world_transform
+                                                        , GetRelativeTransformCallback get_relative_transform, SetRelativeTransformCallback set_relative_transform
+                                                        , GetParentScaleCallback get_parent_scale) 
         : m_Context(context)
         , m_UserData(user_data)
         , m_GetWorldTransform(get_world_transform)
         , m_SetWorldTransform(set_world_transform)
+        , m_GetRelativeTransform(get_relative_transform)
+        , m_SetRelativeTransform(set_relative_transform)
+        , m_GetParentScale(get_parent_scale)
         {
         }
 
@@ -91,6 +96,25 @@ namespace dmPhysics
             }
         }
 
+        virtual void getRelativeTransform(btTransform& relative_trans)
+        {
+            if (m_GetRelativeTransform != 0x0)
+            {
+                dmTransform::Transform relative_transform;
+                m_GetRelativeTransform(m_UserData, relative_transform);
+                Point3 position = Point3(relative_transform.GetTranslation());
+                Quat rotation = Quat(relative_transform.GetRotation());
+                btVector3 origin;
+                ToBt(position, origin, m_Context->m_Scale);
+                relative_trans.setOrigin(origin);
+                relative_trans.setRotation(btQuaternion(rotation.getX(), rotation.getY(), rotation.getZ(), rotation.getW()));
+            }
+            else
+            {
+                relative_trans = btTransform::getIdentity();
+            }
+        }
+
         virtual void setWorldTransform(const btTransform &worldTrans)
         {
             if (m_SetWorldTransform != 0x0)
@@ -105,11 +129,38 @@ namespace dmPhysics
             }
         }
 
+        virtual void setRelativeTransform(const btTransform &relativeTrans)
+        {
+            if (m_SetRelativeTransform != 0x0)
+            {
+                btVector3 bt_pos = relativeTrans.getOrigin();
+                btQuaternion bt_rot = relativeTrans.getRotation();
+
+                Vector3 translation;
+                FromBt(bt_pos, translation, m_Context->m_InvScale);
+                Quat rot = Quat(bt_rot.getX(), bt_rot.getY(), bt_rot.getZ(), bt_rot.getW());
+                m_SetRelativeTransform(m_UserData, Point3(translation), rot);
+            }
+        }
+
+        virtual float getParentScale(void)
+        {
+            if (m_GetParentScale != 0x0)
+            {
+                return m_GetParentScale(m_UserData);
+            }else{
+                return 1;
+            }
+        }
+
     protected:
         HContext3D m_Context;
         void* m_UserData;
         GetWorldTransformCallback m_GetWorldTransform;
         SetWorldTransformCallback m_SetWorldTransform;
+        GetRelativeTransformCallback m_GetRelativeTransform;
+        SetRelativeTransformCallback m_SetRelativeTransform;
+        GetParentScaleCallback m_GetParentScale;
     };
 
     Context3D::Context3D()
@@ -153,6 +204,10 @@ namespace dmPhysics
 
         m_GetWorldTransform = params.m_GetWorldTransformCallback;
         m_SetWorldTransform = params.m_SetWorldTransformCallback;
+
+        m_GetRelativeTransform = params.m_GetRelativeTransformCallback;
+        m_SetRelativeTransform = params.m_SetRelativeTransformCallback;
+        m_GetParentScale = params.m_GetParentScaleCallback;
 
         m_RayCastRequests.SetCapacity(context->m_RayCastLimit);
         OverlapCacheInit(&m_TriggerOverlaps);
@@ -753,7 +808,9 @@ namespace dmPhysics
         btCollisionObject* collision_object = 0x0;
         if (data.m_Type != COLLISION_OBJECT_TYPE_TRIGGER)
         {
-            MotionState* motion_state = new MotionState(world->m_Context, data.m_UserData, world->m_GetWorldTransform, world->m_SetWorldTransform);
+            MotionState* motion_state = new MotionState(world->m_Context, data.m_UserData,
+                                                        world->m_GetWorldTransform, world->m_SetWorldTransform,
+                                                        world->m_GetRelativeTransform, world->m_SetRelativeTransform, world->m_GetParentScale);
             btRigidBody::btRigidBodyConstructionInfo rb_info(data.m_Mass, motion_state, compound_shape, local_inertia);
             rb_info.m_friction = data.m_Friction;
             rb_info.m_restitution = data.m_Restitution;
