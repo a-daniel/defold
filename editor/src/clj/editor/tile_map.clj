@@ -1351,10 +1351,9 @@
       :palette (handle-input-palette self action state evaluation-context)
       :editor  (handle-input-editor self action state evaluation-context))))
 
-(defn make-input-handler
-  []
+(defn make-input-handler []
   (let [state (atom nil)]
-    (fn [self action _]
+    (fn [self _input-state action _]
       (handle-input self action state))))
 
 (defn- get-current-tile
@@ -1415,6 +1414,7 @@
   (output palette-renderables pass/RenderData produce-palette-renderables)
   (output renderables pass/RenderData :cached produce-tool-renderables)
   (output input-handler Runnable :cached (g/constantly (make-input-handler)))
+  (output preview-overrides g/Any (g/constantly nil))
   (output info-text g/Str (g/fnk [cursor-world-pos tile-dimensions mode palette-tile]
                             (case mode
                               :editor (when-some [[x y] (get-current-tile cursor-world-pos tile-dimensions)]

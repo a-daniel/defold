@@ -45,7 +45,7 @@
                      [javax.vecmath/vecmath                       "1.5.2"]
                      [org.codehaus.jackson/jackson-core-asl       "1.9.13"]
                      [org.codehaus.jackson/jackson-mapper-asl     "1.9.13"]
-                     [org.eclipse.jgit/org.eclipse.jgit           "4.2.0.201601211800-r"]
+                     [org.eclipse.jgit/org.eclipse.jgit           "7.6.0.202603022253-r"]
                      [org.apache.commons/commons-compress         "1.18"]
 
                      [net.java.dev.jna/jna                        "4.1.0"]
@@ -302,6 +302,7 @@
                                                     [criterium "0.4.3"]
                                                     [lambdaisland/deep-diff2 "2.10.211"]
                                                     [io.github.cljfx/dev "1.10.6.42"]
+                                                    [io.github.cljfx/plorer "1.25" :exclusions [org.openjfx/javafx-controls org.openjfx/javafx-graphics]]
                                                     [org.clojure/test.check "1.1.1"]
                                                     [org.clojure/tools.trace "0.7.9"]]
                                 :source-paths      ["src/dev"]
@@ -309,7 +310,7 @@
                                 :proto-paths       ["test/proto"]
                                 :resource-paths    ["test/resources"]
                                 :jvm-opts          ["-Ddefold.extension.lua-preprocessor.url=https://github.com/defold/extension-lua-preprocessor/archive/refs/tags/1.1.3.zip"
-                                                    "-Ddefold.extension.rive.url=https://github.com/defold/extension-rive/archive/refs/tags/10.2.0.zip"
+                                                    "-Ddefold.extension.rive.url=https://github.com/defold/extension-rive/archive/refs/heads/editor-plugin-test-fixes.zip"
                                                     "-Ddefold.extension.simpledata.url=https://github.com/defold/extension-simpledata/archive/refs/tags/v1.2.0.zip"
                                                     "-Ddefold.extension.spine.url=https://github.com/defold/extension-spine/archive/refs/tags/4.4.1.zip"
                                                     "-Ddefold.extension.teal.url=https://github.com/defold/extension-teal/archive/refs/tags/v1.4.zip"
